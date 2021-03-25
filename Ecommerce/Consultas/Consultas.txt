@@ -1,0 +1,40 @@
+----- Consultas utilizadas para o teste de comparação de otimização -----
+
+-- Consulta 1 (utilizada para o teste de comparação de otimização)
+
+SELECT
+	cliente.cpf,
+	cliente.nome,
+	produto.nome AS produto, 
+	(produto.preco * compra.qntd_comprada) AS "Valor Pago", 
+	compra.qntd_comprada AS "Quantidade comprada",
+	CASE forma_pagamento 
+		WHEN 1 THEN 'Débito'
+		WHEN 2 THEN 'Crédito '
+		WHEN 3 THEN 'Boleto'
+	END AS "Forma de pagamento",
+	compra.data_compra AS "Data da compra"
+FROM compra
+INNER JOIN cliente ON compra.comprador = cliente.cpf
+INNER JOIN produto ON compra.produto = produto.codigo
+AND cliente.nome ILIKE 'João%'
+AND compra.forma_pagamento = 3
+ORDER BY data_compra ASC, preco ASC
+
+
+
+-- Consulta 2 (utilizada para o teste de comparação de otimização)
+
+SELECT
+	cliente.cpf,
+	cliente.nome,
+	COUNT(compra.numero_transacao) AS "Compras realizadas", 
+	SUM((produto.preco * compra.qntd_comprada)) AS "Valor Total 
+Pago"
+FROM compra
+INNER JOIN cliente ON compra.comprador = cliente.cpf
+INNER JOIN produto ON compra.produto = produto.codigo
+AND cliente.nome ILIKE 'João%'
+AND compra.data_compra BETWEEN '20-08-2020' AND '20-10-2020'
+GROUP BY cliente.cpf
+ORDER BY COUNT(compra.numero_transacao) ASC 

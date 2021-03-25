@@ -1,0 +1,128 @@
+------------- Consultas para testes -------------
+
+---- Consultas envolvendo as 3 tabelas (50mil X 100mil x 1milhão)
+
+1) Retorna o total de compras de cada cliente (2595msec)
+
+SELECT 
+	cliente.cpf,
+	cliente.nome,
+	COUNT(compra.numero_transacao) AS "Compras realizadas", 
+	SUM((produto.preco * compra.qntd_comprada)) AS "Valor Total"
+FROM compra
+INNER JOIN cliente ON cliente.cpf = compra.comprador
+INNER JOIN produto ON produto.codigo = compra.produto
+GROUP BY cliente.cpf
+ORDER BY cliente.nome ASC
+
+2) Retorna as compras realizadas por cada cliente, o total de compras de cada produto comprado e a data da compra (3154msec)
+
+SELECT 
+	cliente.cpf AS "CPF",
+	cliente.nome AS "Nome",
+	produto.nome AS "Compra",
+	compra.qntd_comprada AS "Quantidade comprada",
+	(produto.preco * compra.qntd_comprada) AS "Valor Pago",
+	compra.data_compra AS "Data da compra"
+FROM compra
+INNER JOIN cliente ON cliente.cpf = compra.comprador
+INNER JOIN produto ON produto.codigo = compra.produto
+ORDER BY "CPF" ASC
+
+2) Retorna as compras realizadas por pessoas com nomes começados por J e C (No script tem 3 nomes começados por C e 2 por J) (2493msec)
+
+SELECT 
+	cliente.cpf AS "CPF",
+	cliente.nome AS "Nome",
+	produto.nome AS "Compra",
+	compra.qntd_comprada AS "Quantidade comprada",
+	(produto.preco * compra.qntd_comprada) AS "Valor Pago",
+	compra.data_compra AS "Data da compra"
+FROM compra
+INNER JOIN cliente ON cliente.cpf = compra.comprador
+INNER JOIN produto ON produto.codigo = compra.produto
+AND (cliente.nome ILIKE 'J%' OR cliente.nome ILIKE 'C%')
+ORDER BY cliente.cpf ASC, compra.data_compra ASC
+
+3) Retorna o total de compras realizadas por clientes com nomes começados por J e C e o valor total pago (1178msec)
+
+SELECT 
+	cliente.cpf,
+	cliente.nome,
+	COUNT(compra.numero_transacao) AS "Compras realizadas", 
+	SUM((produto.preco * compra.qntd_comprada)) AS "Valor Total"
+FROM compra
+INNER JOIN cliente ON cliente.cpf = compra.comprador
+INNER JOIN produto ON produto.codigo = compra.produto
+AND (cliente.nome ILIKE 'J%' OR cliente.nome ILIKE 'C%')
+GROUP BY cliente.cpf
+ORDER BY COUNT(compra.numero_transacao) ASC, cliente.cpf ASC
+
+4) Quantos produtos distintos foram comprados (5793msec)
+
+SELECT
+	COUNT(DISTINCT produto.codigo)
+FROM compra
+INNER JOIN produto ON produto.codigo = compra.produto
+INNER JOIN cliente ON compra.comprador = cliente.cpf
+
+5) A quantidade total comprada, de cada produto comprado (1611msec)
+
+SELECT 
+	produtos_comprados.codigo,
+	produtos_comprados.nome,
+	COUNT(compra.qntd_comprada) AS qntd
+FROM compra
+INNER JOIN (SELECT
+	DISTINCT produto.codigo,
+	produto.nome
+FROM compra
+INNER JOIN produto ON produto.codigo = compra.produto
+INNER JOIN cliente ON compra.comprador = cliente.cpf
+GROUP BY produto.codigo) AS produtos_comprados ON compra.produto = produtos_comprados.codigo
+GROUP BY produtos_comprados.codigo, produtos_comprados.nome
+
+
+---- Consultas envolvendo 2 tabelas, sendo uma delas a tabela compra (1milhão de tuplas)
+
+6)A quantidade de clientes que já fizeram compras e a quantidade de produtos comprados (1275msec)
+
+SELECT 
+	DISTINCT compra.comprador,
+	cliente.nome,
+	SUM(compra.qntd_comprada) AS qntd_compras
+FROM compra
+INNER JOIN cliente ON cliente.cpf = compra.comprador
+GROUP BY comprador, nome
+
+7) O dia com mais compras realizadas e a quantidade de produtos comprados (236msec)
+
+SELECT
+	DISTINCT compra.data_compra,
+	SUM(compra.qntd_comprada) AS qntd_produtos_comprados
+FROM compra
+GROUP BY compra.data_compra
+ORDER BY qntd_compras DESC
+LIMIT 1
+
+8) O produto mais comprado, a quantidade de compras desse produto, no dia que foi realizado mais compras (458msec)
+
+SELECT
+	DISTINCT produto.codigo AS product_code,
+	produto.nome AS produto,
+	SUM(compra.qntd_comprada) AS "Produto mais comprado no dia",
+	COUNT(produto.codigo) AS "Quantidade de usuários que comprou o produto",
+	compra.data_compra,
+	maior_data_compras.qntd_compras AS "Quantidade de compras no dia"
+FROM compra
+INNER JOIN (SELECT
+	DISTINCT compra.data_compra,
+	SUM(compra.qntd_comprada) AS qntd_compras
+FROM compra
+GROUP BY compra.data_compra
+ORDER BY qntd_compras DESC
+LIMIT 1) AS maior_data_compras ON maior_data_compras.data_compra = compra.data_compra
+INNER JOIN produto ON compra.produto = produto.codigo
+GROUP BY product_code, compra.data_compra, "Quantidade de compras no dia"
+ORDER BY "Produto mais comprado no dia" DESC
+LIMIT 1

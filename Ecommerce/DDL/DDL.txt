@@ -1,0 +1,43 @@
+DROP TRIGGER IF EXISTS integridade_compra ON compra;
+DROP TABLE IF EXISTS compra;
+DROP TABLE IF EXISTS produto;
+DROP TABLE IF EXISTS cliente;
+
+-- categoria:
+-- 1: Roupas 	2: Calçados 	3: Acessórios
+
+CREATE TABLE produto(
+codigo VARCHAR(10) PRIMARY KEY,
+nome VARCHAR(50) NOT NULL,
+categoria SMALLINT NOT NULL CHECK (
+	categoria = 1 OR
+	categoria = 2 OR
+	categoria = 3),
+preco NUMERIC NOT NULL CHECK (preco >= 0),
+data_criacao DATE NOT NULL CHECK (data_criacao > '01/01/2020'),
+qntd INTEGER NOT NULL CHECK (qntd >= 0));
+
+CREATE TABLE cliente(
+cpf VARCHAR(11) PRIMARY KEY,
+nome VARCHAR(50) NOT NULL,
+data_nasc DATE NOT NULL CHECK (data_nasc > '01/01/1900'),
+telefone VARCHAR(14) UNIQUE NOT NULL,
+email VARCHAR(50) UNIQUE NOT NULL);
+
+-- forma_pagamento
+-- 1: Débito 	2: Crédito 	3: Boleto
+
+CREATE TABLE compra(
+numero_transacao SERIAL,
+data_compra DATE NOT NULL,
+endereco TEXT NOT NULL,
+forma_pagamento SMALLINT NOT NULL CHECK (
+	forma_pagamento = 1 OR
+	forma_pagamento = 2 OR
+	forma_pagamento = 3),
+qntd_comprada INTEGER NOT NULL CHECK (qntd_comprada > 0),
+comprador VARCHAR(11) NOT NULL,
+produto VARCHAR(10) NOT NULL,
+CONSTRAINT comprador_produto PRIMARY KEY(numero_transacao, comprador ,produto),
+FOREIGN KEY (comprador) REFERENCES cliente(cpf) ON UPDATE CASCADE ON DELETE CASCADE,
+FOREIGN KEY (produto) REFERENCES produto(codigo) ON UPDATE CASCADE ON DELETE CASCADE);

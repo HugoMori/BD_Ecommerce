@@ -1,0 +1,135 @@
+---------------------------- INDEX---------------------------------------------------
+
+
+--- Ver o tamanho das tabelas e o tamanho dos indices
+
+SELECT
+	 table_name,
+	 pg_size_pretty(table_size)   || ' (' || CASE WHEN total_size = 0 THEN 0.00 ELSE round(table_size * 100 / total_size) END   || ' %)' AS table_size,
+	 pg_size_pretty(indexes_size) || ' (' || CASE WHEN total_size = 0 THEN 0.00 ELSE round(indexes_size * 100 / total_size) END || ' %)' AS indexes_size,
+	 pg_size_pretty(total_size)                                                                                                          AS total_size
+FROM (
+	(SELECT
+		table_name,
+		pg_table_size(table_name)          AS table_size,
+		pg_indexes_size(table_name)        AS indexes_size,
+		pg_total_relation_size(table_name) AS total_size
+	FROM (
+		SELECT ('"' || table_schema || '"."' || table_name || '"') AS table_name
+		FROM information_schema.tables
+		WHERE NOT table_schema IN ('pg_catalog', 'information_schema')
+	) AS all_tables
+	ORDER BY total_size DESC)
+
+	UNION ALL
+
+	(SELECT
+		'TOTAL',
+		sum(pg_table_size(table_name))          AS table_size,
+		sum(pg_indexes_size(table_name))        AS indexes_size,
+		sum(pg_total_relation_size(table_name)) AS total_size
+	FROM (
+		SELECT ('"' || table_schema || '"."' || table_name || '"') AS table_name
+		FROM information_schema.tables
+		WHERE NOT table_schema IN ('pg_catalog', 'information_schema')
+	) AS all_tables)
+
+) AS pretty_sizes;
+
+------------------------
+
+-- Mostras os indices criados e a definição deles
+
+SELECT
+    tablename,
+    indexname,
+    indexdef
+FROM
+    pg_indexes
+WHERE
+    schemaname = 'public'
+ORDER BY
+    tablename,
+    indexname;
+
+-----------------------
+
+
+SET enable_indexscan to OFF;
+SET enable_bitmapscan to OFF;
+
+SET enable_indexscan to ON;
+SET enable_bitmapscan to ON;
+
+CREATE INDEX cliente_nome ON cliente USING gin (nome gin_trgm_ops);
+DROP INDEX cliente_nome;
+
+CREATE INDEX data_compra ON compra (comprador, data_compra);
+DROP INDEX data_compra;
+
+CREATE INDEX pagamento_comprador ON compra (comprador, forma_pagamento);
+DROP INDEX pagamento_comprador;
+
+----------------------------- USUÁRIOS ----------------------------------------------
+
+
+SELECT SESSION_USER, CURRENT_USER;
+
+-- Trocar o dono do BD
+
+ALTER DATABASE ecommerce OWNER TO tecnicoDB;
+
+-- VER O DONO DO BD
+SELECT d.datname as "Name",
+pg_catalog.pg_get_userbyid(d.datdba) as "Owner"
+FROM pg_catalog.pg_database d
+WHERE d.datname = 'ecommerce'
+ORDER BY 1;
+
+
+
+
+-- Table OWNER
+-- Projetista/Tecnico do ecommerce
+CREATE ROLE tecnicoDB WITH CREATEDB CREATEROLE INHERIT LOGIN PASSWORD 'tecbd01';
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA PUBLIC TO tecnicoDB WITH GRANT OPTION;
+SET ROLE 'tecnicodb';
+
+REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA PUBLIC FROM tecnicoDB CASCADE;
+DROP USER tecnicoDB;
+
+-- Dono do Ecommerce (criado pelo tecnico do db)
+CREATE ROLE dono_ecommerce WITH CREATEROLE LOGIN PASSWORD 'donoecommerce01';
+GRANT SELECT, INSERT, DELETE, UPDATE ON ALL TABLES IN SCHEMA PUBLIC TO dono_ecommerce WITH GRANT OPTION;
+SET ROLE 'dono_ecommerce';
+
+
+REVOKE SELECT, INSERT, DELETE, UPDATE ON ALL TABLES IN SCHEMA PUBLIC FROM dono_ecommerce CASCADE;
+DROP USER dono_ecommerce;
+
+-- Funcionário (criado pelo dono do ecommerce)
+CREATE ROLE funcionario WITH LOGIN PASSWORD 'func01';
+GRANT SELECT, INSERT, DELETE, UPDATE ON compra, produto TO funcionario;
+GRANT SELECT, INSERT, UPDATE(nome, data_nasc, telefone, email) ON cliente TO funcionario;
+SET ROLE 'funcionario';
+
+REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA PUBLIC FROM funcionario CASCADE;
+DROP USER funcionario;
+
+-- Cliente (criado pelo dono do ecommerce)
+CREATE ROLE user_cliente;
+GRANT SELECT ON compra, cliente TO user_cliente;
+GRANT SELECT(nome, categoria, preco) ON produto TO user_cliente;
+
+
+REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA PUBLIC FROM user_cliente CASCADE;
+DROP USER user_cliente;
+
+
+---------------------------------
+
+SELECT * FROM buscar_produto_pagamento('João', 3) AS (cpf VARCHAR, nome VARCHAR, produto VARCHAR, "Valor Pago" NUMERIC, "Quantidade comprada" INTEGER, "Forma de pagamento" TEXT, "Data da compra" DATE);
+
+SELECT * FROM buscar_compra_entre_datas('João', '20/03/2020', '20/08/2020') AS (cpf VARCHAR, nome VARCHAR, "Compras realizadas" BIGINT, "Valor Total Pago" NUMERIC);
+
+

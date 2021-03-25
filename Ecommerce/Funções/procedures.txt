@@ -1,0 +1,71 @@
+--- Procedure 1
+
+create or replace function buscar_produto_pagamento(nome_cliente text, pagamento integer)
+returns SETOF record
+AS $$
+	declare 
+		registro record;
+		curBusca CURSOR FOR SELECT
+			cliente.cpf,
+			cliente.nome,
+			produto.nome AS produto, 
+			(produto.preco * compra.qntd_comprada) AS "Valor Pago", 
+			compra.qntd_comprada AS "Quantidade comprada",
+		CASE forma_pagamento 
+			WHEN 1 THEN 'Débito'
+			WHEN 2 THEN 'Crédito'
+			WHEN 3 THEN 'Boleto'
+		END AS "Forma de pagamento",
+		compra.data_compra AS "Data da compra"
+		FROM compra
+			INNER JOIN cliente ON compra.comprador = cliente.cpf
+			INNER JOIN produto ON compra.produto = produto.codigo
+			-- concatenar ||
+			AND cliente.nome ILIKE nome_cliente || '%'
+			AND compra.forma_pagamento = pagamento
+			ORDER BY data_compra ASC, preco ASC;
+	begin
+		OPEN curBusca;
+		loop
+			FETCH curBusca INTO registro;
+			if not found then
+				exit;
+			end if;
+			return next registro;
+		end loop;
+		close curBusca;
+	end;
+$$ LANGUAGE plpgsql;
+
+
+--- Procedure 2
+
+create or replace function buscar_compra_entre_datas(nome_cliente text, data_inicial date, data_final date)
+returns SETOF record 
+AS $$
+	declare
+		registro record;
+		curBuscaCompra CURSOR FOR SELECT
+			cliente.cpf,
+			cliente.nome,
+			COUNT(compra.numero_transacao) AS "Compras realizadas", 
+			SUM((produto.preco * compra.qntd_comprada)) AS "Valor Total Pago"
+		FROM compra
+			INNER JOIN cliente ON compra.comprador = cliente.cpf
+			INNER JOIN produto ON compra.produto = produto.codigo
+			AND cliente.nome ILIKE nome_cliente || '%'
+			AND compra.data_compra BETWEEN data_inicial AND data_final
+			GROUP BY cliente.cpf
+			ORDER BY COUNT(compra.numero_transacao) ASC;
+	begin
+		OPEN curBuscaCompra;
+		loop
+			FETCH curBuscaCompra INTO registro;
+			if not found then
+				exit;
+			end if;
+			return next registro;
+		end loop;
+		close curBuscaCompra;			
+	end;
+$$ LANGUAGE plpgsql;

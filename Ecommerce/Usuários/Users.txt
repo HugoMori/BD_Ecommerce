@@ -1,0 +1,21 @@
+-- Table OWNER
+-- Projetista/Tecnico do ecommerce
+CREATE ROLE tecnicoDB WITH CREATEDB CREATEROLE INHERIT LOGIN PASSWORD 'tecbd01';
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA PUBLIC TO tecnicoDB WITH GRANT OPTION;
+SET ROLE 'tecnicodb';
+
+-- Dono do Ecommerce (criado pelo tecnico do db)
+CREATE ROLE dono_ecommerce WITH CREATEROLE LOGIN PASSWORD 'donoecommerce01';
+GRANT SELECT, INSERT, DELETE, UPDATE ON ALL TABLES IN SCHEMA PUBLIC TO dono_ecommerce WITH GRANT OPTION;
+SET ROLE 'dono_ecommerce';
+
+-- Funcionário (criado pelo dono do ecommerce)
+CREATE ROLE funcionario WITH LOGIN PASSWORD 'func01';
+GRANT SELECT, INSERT, DELETE, UPDATE ON compra, produto TO funcionario;
+GRANT SELECT, INSERT, UPDATE(nome, data_nasc, telefone, email) ON cliente TO funcionario;
+SET ROLE 'funcionario';
+
+-- Cliente (criado pelo dono do ecommerce)
+CREATE ROLE user_cliente;
+GRANT SELECT ON compra, cliente TO user_cliente;
+GRANT SELECT(nome, categoria, preco) ON produto TO user_cliente;

@@ -1,0 +1,8 @@
+CREATE INDEX cliente_nome ON cliente USING gin (nome gin_trgm_ops);
+DROP INDEX cliente_nome;
+
+CREATE INDEX data_compra ON compra (comprador, data_compra ASC);
+DROP INDEX data_compra;
+
+CREATE INDEX pagamento_comprador ON compra (comprador, forma_pagamento ASC);
+DROP INDEX pagamento_comprador;

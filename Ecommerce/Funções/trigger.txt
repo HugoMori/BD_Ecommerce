@@ -1,0 +1,21 @@
+CREATE OR REPLACE FUNCTION integridade_compra()
+RETURNS trigger AS $$
+	DECLARE
+		dt_produto produto.data_criacao%TYPE;
+		qntd_produto produto.qntd%TYPE;
+	BEGIN
+		SELECT produto.data_criacao, produto.qntd INTO dt_produto, qntd_produto
+		FROM produto WHERE produto.codigo = new.produto;
+		
+		IF (dt_produto <= new.data_compra AND qntd_produto >= new.qntd_comprada) THEN
+			UPDATE produto SET qntd = qntd - new.qntd_comprada WHERE codigo = new.produto;
+			RETURN NEW;
+		ELSE
+			RAISE EXCEPTION 'Não foi possivel realizar a efetivação da compra. Data da compra (%) não condiz com a
+			data de cadastro do produto (%) e/ou quantidade comprada (%) é maior que a quantidade ofertada (%). Produto: %.', new.data_compra, dt_produto, new.qntd_comprada, qntd_produto, new.produto;  
+		END IF;
+	END;
+$$ LANGUAGE plpgsql;
+
+CREATE trigger integridade_compra BEFORE INSERT OR UPDATE ON compra
+FOR EACH ROW EXECUTE PROCEDURE integridade_compra();

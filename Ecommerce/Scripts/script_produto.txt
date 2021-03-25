@@ -1,0 +1,43 @@
+---------------------------PRODUTO-------------------------------
+-- Tempo de exec p/5000 tuplas: 600ms 
+-- Tempo de exec p/10000 tuplas: 934ms
+-- Tempo de exec p/500000 tuplas: 36 secs 50 msec.
+
+DO $$
+DECLARE
+	  dat DATE;
+	  j INTEGER := (SELECT COUNT(codigo) FROM produto) + 1;
+BEGIN
+
+        FOR i in 1..50000 LOOP
+				
+				-- Gerar data aleatória
+				dat := (select (timestamp '2020-01-10 20:00:00' + random() * interval '20 day')::date);
+			
+			-- Inserir os dados do produto
+			INSERT INTO produto(codigo, nome, categoria, preco, data_criacao, qntd)
+			VALUES ('0'||j+i, 
+					CASE round(random() * 10 + 1)
+							 WHEN 1 THEN 'Bolsa '
+							 WHEN 2 THEN 'Sapato '
+							 WHEN 3 THEN 'Colar '
+							 WHEN 4 THEN 'Pulseira '
+							 WHEN 5 THEN 'Brinco '
+							 WHEN 6 THEN 'Relógio '
+							 WHEN 7 THEN 'Anel '
+							 WHEN 8 THEN 'Joia '
+							 WHEN 9 THEN 'Óculos '
+							 WHEN 10 THEN 'Vestido '
+							 WHEN 11 THEN 'Saia '
+						END ||j+i, 
+					round(random() * 2 + 1), 
+					trunc((random() * 200 + 1)::numeric, 2), 
+					dat, 
+					round(random() * 2000 + 1000));
+		
+		END LOOP;
+
+END;
+
+$$
+  LANGUAGE plpgsql;

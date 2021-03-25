@@ -1,0 +1,62 @@
+------------------------CLIENTE---------------------------------
+-- Tempo de exec p/50000 tuplas: 6sec153ms 
+-- Tempo de exec p/100000 tuplas: 12sec94ms
+
+
+DO $$
+DECLARE
+	  dat DATE;
+	  tel VARCHAR;
+	  j INTEGER := (SELECT COUNT(cpf) FROM cliente);
+BEGIN
+
+        FOR i in 1..100000 LOOP
+				-- Gerar data aleatória
+				dat := (select (timestamp '1900-01-10 20:00:00' + random() * interval '110 year')::date);
+				-- Gerar telefone aleatório
+				tel := (SELECT format('(%s%s)%s%s%s%s%s-%s%s%s%s', a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14])
+							FROM  (
+							   SELECT ARRAY (
+								  SELECT trunc(random() * 10)::int
+								  FROM   generate_series(1, 10)
+								  ) AS a
+							   ) sub);
+							   
+				-- Inserir os dados do cliente
+				INSERT INTO cliente(cpf, nome, data_nasc, telefone, email)
+				VALUES ('000'||j+i||'-'||round(random() * 8 + 1), 
+						CASE round(random() * 10 + 1)
+							 WHEN 1 THEN 'João '
+							 WHEN 2 THEN 'Carlos '
+							 WHEN 3 THEN 'Julia '
+							 WHEN 4 THEN 'Márcia '
+							 WHEN 5 THEN 'Claudio '
+							 WHEN 6 THEN 'Ana '
+							 WHEN 7 THEN 'Nathália '
+							 WHEN 8 THEN 'Carolina '
+							 WHEN 9 THEN 'Lucas '
+							 WHEN 10 THEN 'Augusto '
+							 WHEN 11 THEN 'Pamela '
+						END ||
+						CASE round(random() * 10 + 1)
+							 WHEN 1  THEN 'Carvalho'
+							 WHEN 2 THEN 'Oliveira'
+							 WHEN 3 THEN 'Junqueira'
+							 WHEN 4 THEN 'Silva'
+							 WHEN 5 THEN 'Souza'
+							 WHEN 6 THEN 'Alves'
+							 WHEN 7 THEN 'Rodrigues'
+							 WHEN 8 THEN 'Ferreira'
+							 WHEN 9 THEN 'Pereira'
+							 WHEN 10 THEN 'Santos'
+							 WHEN 11 THEN 'Lima'
+						END, 
+						dat, 
+						tel, 
+						'cliente'||j+i||'@email.com');
+		END LOOP;
+
+END;
+
+$$
+  LANGUAGE plpgsql;

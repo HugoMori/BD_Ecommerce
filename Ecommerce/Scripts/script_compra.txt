@@ -1,0 +1,42 @@
+-------------------------------- COMPRA-------------------------------------------
+-- SEM COMMIT
+-- Tempo exec p/500000 tuplas: 1hra54min 
+-- Tempo de exec p/1000000 tuplas: +de 2 hras e desconectou
+
+-- COM COMMIT
+-- Tempo exec p/500000 tuplas: 34min
+-- Tempo de exec p/1000000 tuplas: 1hra 16min
+
+DO $$
+DECLARE
+      	  --cursor
+      	  buyer RECORD;
+	  dat DATE;
+	  cod_prod produto.codigo%TYPE;
+	  
+	  C1 CURSOR FOR SELECT cpf FROM cliente;
+
+BEGIN
+
+      --realiza um loop em todos os telefones da tabela
+      FOR buyer in C1 LOOP
+
+        FOR i in 1..10 LOOP
+				-- Gerar data aleatória
+				dat := (select (timestamp '2020-02-10 20:00:00' + random() * interval '9 month')::date);
+
+				-- Seleciona o código do produto de forma randomica
+				cod_prod := (SELECT codigo FROM produto ORDER BY random() LIMIT 1);
+
+			INSERT INTO compra(data_compra, endereco, forma_pagamento, qntd_comprada, comprador, produto)
+			VALUES (dat, 'endereço '||i, round(random() * 2 + 1), round(random() * 8 + 1), buyer.cpf, cod_prod);
+		
+		COMMIT;
+		END LOOP;
+
+   	END LOOP;
+
+END;
+
+$$
+  LANGUAGE plpgsql;
